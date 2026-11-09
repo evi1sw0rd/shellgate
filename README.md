@@ -326,8 +326,14 @@ For a complete end-to-end operational scenario (from staging files to GitHub pub
 
 ---
 
+## Author
+
+**Natthachai Makmoon** ([@evi1sw0rd](https://github.com/evi1sw0rd))
+
+---
+
 ## License & Legal Notice
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE). Copyright (c) 2026 Natthachai Makmoon.
 
 > **Authorized Use Only:** ShellGate is intended solely for authorized penetration testing, security research, and educational CTF environments. Always obtain explicit written authorization before testing any network or host you do not own.

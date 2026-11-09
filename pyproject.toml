@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "penthub"
+version = "2.0.0"
+description = "Multi-session reverse-shell listener, tunnel manager, and SHA-256 verified file transfer hub for authorized penetration testing."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+  { name = "evi1sw0rd" }
+]
+keywords = ["pentest", "reverse-shell", "ctf", "lateral-movement", "post-exploitation"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security"
+]
+dependencies = []
+
+[project.scripts]
+penthub = "penthub.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["penthub*"]

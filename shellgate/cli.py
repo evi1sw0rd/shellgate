@@ -6,12 +6,12 @@ import shlex
 import sys
 import time
 
-from penthub import __version__
-from penthub.listener import Session, SessionManager
-from penthub.payloads import generate_payloads
-from penthub.staging import StagingServer
-from penthub.transfer import download_file, upload_file
-from penthub.tunnel import TunnelManager
+from shellgate import __version__
+from shellgate.listener import Session, SessionManager
+from shellgate.payloads import generate_payloads
+from shellgate.staging import StagingServer
+from shellgate.transfer import download_file, upload_file
+from shellgate.tunnel import TunnelManager
 
 
 def _print_session_help() -> None:
@@ -155,8 +155,8 @@ def show_payloads(tunnel: TunnelManager, http_url: str | None) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="penthub",
-        description="PentHub - Multi-session reverse shell listener, tunnel manager, and SHA-256 verified file transfer hub.",
+        prog="shellgate",
+        description="ShellGate - Multi-session reverse-shell listener, tunnel gate, and SHA-256 verified file transfer hub.",
     )
     parser.add_argument("-p", "--port", type=int, default=8888, help="Local listener TCP port (default: 8888)")
     parser.add_argument("-b", "--bind", default="0.0.0.0", help="Bind address (default: 0.0.0.0)")
@@ -199,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         while True:
             ep = tunnel.url or (f"FAILED ({tunnel.error})" if tunnel.error else "WAITING...")
             active = manager.list_sessions()
-            print(f"\n--- PENTHUB v{__version__} ({args.mode.upper()}) ---")
+            print(f"\n--- SHELLGATE v{__version__} ({args.mode.upper()}) ---")
             print(f"[Listener]: {args.bind}:{manager.actual_port} | [Endpoint]: {ep} | [Sessions]: {len(active)}")
             if http_url:
                 print(f"[HTTP Staging]: {http_url} -> {args.srv_dir}")

@@ -1,4 +1,4 @@
-from penthub.cli import main
+from shellgate.cli import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

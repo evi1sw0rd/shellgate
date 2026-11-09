@@ -1,6 +1,6 @@
-# PentHub
+# ShellGate
 
-**PentHub** is a zero-dependency Python 3 multi-session reverse-shell listener, tunnel manager, and integrity-verified file transfer hub built for authorized penetration testing, Red Team engagements, and CTF labs (Hack The Box, OSCP).
+**ShellGate** is a zero-dependency Python 3 multi-session reverse-shell listener, tunnel gate, and integrity-verified file transfer hub built for authorized penetration testing, Red Team engagements, and CTF labs (Hack The Box, OSCP).
 
 ## Key Features
 
@@ -22,20 +22,20 @@
 pip install -e . --break-system-packages
 
 # Or run directly without installing
-python3 -m penthub --help
+python3 -m shellgate --help
 ```
 
 ## Usage
 
 ```bash
 # HTB / VPN local listener on tun0:8888
-penthub --mode local --iface tun0 --port 8888
+shellgate --mode local --iface tun0 --port 8888
 
 # Public callback via Pinggy SSH tunnel
-penthub --mode pinggy --port 8888
+shellgate --mode pinggy --port 8888
 
 # Local listener + HTTP staging server on port 8080 serving ./srv
-penthub --mode local --port 8888 --http-port 8080 --srv-dir ./srv
+shellgate --mode local --port 8888 --http-port 8080 --srv-dir ./srv
 ```
 
 ### Interactive Session Commands

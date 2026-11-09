@@ -10,12 +10,12 @@ import time
 import unittest
 import urllib.request
 
-from penthub.cli import build_parser
-from penthub.listener import SessionManager
-from penthub.payloads import generate_payloads
-from penthub.staging import StagingServer
-from penthub.transfer import download_file, quote_ps_single, upload_file, validate_win_cmd_path
-from penthub.tunnel import TunnelManager, strip_ansi
+from shellgate.cli import build_parser
+from shellgate.listener import SessionManager
+from shellgate.payloads import generate_payloads
+from shellgate.staging import StagingServer
+from shellgate.transfer import download_file, quote_ps_single, upload_file, validate_win_cmd_path
+from shellgate.tunnel import TunnelManager, strip_ansi
 
 
 def _start_mock_posix_agent(port: int, files_on_target: dict[str, bytes]) -> threading.Thread:
@@ -62,7 +62,7 @@ def _start_mock_posix_agent(port: int, files_on_target: dict[str, bytes]) -> thr
     return t
 
 
-class PentHubTests(unittest.TestCase):
+class ShellGateTests(unittest.TestCase):
     def test_strip_ansi_and_cli_parser(self) -> None:
         self.assertEqual(strip_ansi("\x1b[92mtcp://a:123\x1b[0m"), "tcp://a:123")
         args = build_parser().parse_args(["--port", "9001", "--mode", "local", "--host", "10.10.14.5"])
@@ -95,7 +95,7 @@ class PentHubTests(unittest.TestCase):
         mgr.start()
         try:
             payload_bytes = os.urandom(2500) + b"\x00\xffEND"
-            target_files = {"sample": b"secret_flag{penthub_v2_verified}"}
+            target_files = {"sample": b"secret_flag{shellgate_v2_verified}"}
             _start_mock_posix_agent(mgr.actual_port, target_files)
 
             self.assertTrue(connected.wait(timeout=5.0))
@@ -127,14 +127,14 @@ class PentHubTests(unittest.TestCase):
     def test_staging_server_get_and_safe_post_upload(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             with open(os.path.join(tmpdir, "hello.txt"), "wb") as fh:
-                fh.write(b"penthub-stage")
+                fh.write(b"shellgate-stage")
             srv = StagingServer(directory=tmpdir, bind_host="127.0.0.1", port=0)
             port = srv.start()
             try:
                 with urllib.request.urlopen(f"http://127.0.0.1:{port}/hello.txt") as resp:
-                    self.assertEqual(resp.read(), b"penthub-stage")
+                    self.assertEqual(resp.read(), b"shellgate-stage")
 
-                boundary = "----PentHubBoundary"
+                boundary = "----ShellGateBoundary"
                 body = (
                     f"--{boundary}\r\n"
                     'Content-Disposition: form-data; name="file"; filename="../../evil.txt"\r\n'

@@ -8,7 +8,7 @@ import shlex
 import time
 from collections.abc import Callable
 
-from penthub.listener import Session, drain_socket, recv_until
+from shellgate.listener import Session, drain_socket, recv_until
 
 SHA256_RE = re.compile(r"\b([0-9a-fA-F]{64})\b")
 NON_B64_RE = re.compile(r"[^a-zA-Z0-9+/=]")

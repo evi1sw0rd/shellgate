@@ -15,9 +15,10 @@ def strip_ansi(text: str) -> str:
     return ANSI_RE.sub("", text)
 
 
-def detect_local_ip(iface: str | None = None) -> str:
+def detect_local_ip(iface: str | None = "tun0") -> str:
     """Detect the preferred local/VPN IPv4 address for reverse-shell callbacks."""
-    candidates = [iface] if iface else ["tun0", "tap0", "eth1", "eth0", "tailscale0"]
+    fallbacks = ["tun0", "tap0", "eth1", "eth0", "tailscale0"]
+    candidates = [iface] + [d for d in fallbacks if d != iface] if iface else fallbacks
     if shutil.which("ip"):
         for dev in candidates:
             if not dev:

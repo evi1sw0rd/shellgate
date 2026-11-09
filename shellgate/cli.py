@@ -4,6 +4,7 @@ import argparse
 import select
 import shlex
 import sys
+import threading
 import time
 
 from shellgate import __version__
@@ -161,21 +162,35 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-p", "--port", type=int, default=8888, help="Local listener TCP port (default: 8888)")
     parser.add_argument("-b", "--bind", default="0.0.0.0", help="Bind address (default: 0.0.0.0)")
     parser.add_argument("-m", "--mode", choices=["local", "pinggy"], default="local", help="Endpoint mode: local/VPN IP or Pinggy SSH tunnel")
-    parser.add_argument("-i", "--iface", default=None, help="Preferred interface in local mode (e.g. tun0, eth0)")
+    parser.add_argument("-i", "--iface", default="tun0", help="Preferred interface in local mode (default: tun0, falls back automatically)")
     parser.add_argument("--host", default=None, help="Explicit callback host/IP override in local mode")
     parser.add_argument("--http-port", type=int, default=0, help="Enable HTTP staging server on this port (0 = disabled)")
     parser.add_argument("--srv-dir", default="./srv", help="Directory served by optional HTTP staging server")
+    parser.add_argument("-y", "--yolo", action="store_true", help="Auto-print payloads and attach to first incoming session (default when no flags given)")
+    parser.add_argument("--menu", action="store_true", help="Start directly in interactive menu instead of YOLO auto-attach")
     parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    raw_argv = sys.argv[1:] if argv is None else list(argv)
+    args = build_parser().parse_args(raw_argv)
+    yolo_mode = args.yolo or (not args.menu and len(raw_argv) == 0)
 
     tunnel = TunnelManager(local_port=args.port, mode=args.mode, iface=args.iface, host_override=args.host)
     tunnel.start(wait_seconds=5.0 if args.mode == "pinggy" else 0.0)
 
+    first_sid: list[int] = []
+    first_ready = threading.Event()
+
     def _notify(session: Session) -> None:
+        if not first_ready.is_set():
+            first_sid.append(session.sid)
+            first_ready.set()
+            if yolo_mode:
+                sys.stdout.write(f"\n[+] Session connected: {session.label} -> auto-attaching...\n")
+                sys.stdout.flush()
+                return
         sys.stdout.write(f"\n\n[+] Session connected: {session.label}\n> ")
         sys.stdout.flush()
 
@@ -196,6 +211,22 @@ def main(argv: list[str] | None = None) -> int:
             http_url = f"http://{tunnel.host}:{actual_http}"
 
     try:
+        if yolo_mode:
+            ep = tunnel.url or (f"FAILED ({tunnel.error})" if tunnel.error else "WAITING...")
+            print(f"\n--- SHELLGATE v{__version__} (YOLO | {args.mode.upper()} | iface={args.iface}) ---")
+            print(f"[Listener]: {args.bind}:{manager.actual_port} | [Endpoint]: {ep}")
+            if http_url:
+                print(f"[HTTP Staging]: {http_url} -> {args.srv_dir}")
+            show_payloads(tunnel, http_url)
+            print("[*] YOLO mode: waiting for first session (Ctrl+C for menu)...")
+            try:
+                while not first_ready.wait(timeout=0.5):
+                    pass
+                if first_sid:
+                    interact_session(manager, first_sid[0])
+            except KeyboardInterrupt:
+                print("\n[*] Switching to interactive menu...")
+
         while True:
             ep = tunnel.url or (f"FAILED ({tunnel.error})" if tunnel.error else "WAITING...")
             active = manager.list_sessions()

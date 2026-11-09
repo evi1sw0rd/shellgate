@@ -147,10 +147,12 @@ python3 -m shellgate --help
 | `-p`, `--port` | `8888` | Local TCP port to bind for incoming shell sessions |
 | `-b`, `--bind` | `0.0.0.0` | Local bind IP address |
 | `-m`, `--mode` | `local` | Endpoint discovery mode: `local` (LAN/VPN IP) or `pinggy` (SSH TCP relay) |
-| `-i`, `--iface` | `None` | Preferred network interface in `local` mode (e.g., `tun0`, `eth0`) |
+| `-i`, `--iface` | `tun0` | Preferred network interface in `local` mode (falls back automatically if down) |
 | `--host` | `None` | Explicit callback IP/hostname override in `local` mode |
 | `--http-port` | `0` | Enable HTTP staging server on the specified port (`0` = disabled) |
 | `--srv-dir` | `./srv` | Root directory served by the HTTP staging server |
+| `-y`, `--yolo` | Auto on 0 args | Print connection snippets on startup and auto-attach to the first incoming session |
+| `--menu` | `False` | Start directly in interactive menu mode (overrides zero-arg YOLO mode) |
 | `-V`, `--version` | — | Print version and exit |
 
 ---
@@ -158,8 +160,14 @@ python3 -m shellgate --help
 ## Usage Examples
 
 ```bash
-# HTB / OSCP VPN listener on tun0:8888
-shellgate --mode local --iface tun0 --port 8888
+# YOLO mode (zero flags): defaults to tun0:8888, prints payloads, auto-attaches to session #1
+shellgate
+
+# YOLO mode with Pinggy tunnel or custom port
+shellgate --mode pinggy -y
+
+# Standard interactive menu on tun0:8888
+shellgate --menu
 
 # VPN listener + HTTP staging server on port 8080 serving ./srv
 shellgate --mode local --iface tun0 --port 8888 --http-port 8080 --srv-dir ./srv

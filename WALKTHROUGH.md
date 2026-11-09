@@ -33,6 +33,11 @@ cp /home/z0ke/Pentest-Tools/05-Post-Exploitation/Lateral-Movement/ligolo/agents/
 
 Choose the endpoint mode that matches your network topology:
 
+- **Option 0 — YOLO Mode (Zero Flags, Default `tun0:8888`):**
+  ```bash
+  # No flags needed: auto-selects tun0 (falls back cleanly), prints snippets, auto-attaches to #1
+  shellgate
+  ```
 - **Option A — Local / VPN Interface (`tun0`, `eth0`, etc.) with HTTP Staging:**
   ```bash
   shellgate --mode local --iface tun0 --port 8888 --http-port 8080 --srv-dir ~/srv

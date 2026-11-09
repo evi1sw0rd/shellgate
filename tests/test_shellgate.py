@@ -15,7 +15,7 @@ from shellgate.listener import SessionManager
 from shellgate.payloads import generate_payloads
 from shellgate.staging import StagingServer
 from shellgate.transfer import download_file, quote_ps_single, upload_file, validate_win_cmd_path
-from shellgate.tunnel import TunnelManager, strip_ansi
+from shellgate.tunnel import TunnelManager, detect_local_ip, strip_ansi
 
 
 def _start_mock_posix_agent(port: int, files_on_target: dict[str, bytes]) -> threading.Thread:
@@ -65,10 +65,18 @@ def _start_mock_posix_agent(port: int, files_on_target: dict[str, bytes]) -> thr
 class ShellGateTests(unittest.TestCase):
     def test_strip_ansi_and_cli_parser(self) -> None:
         self.assertEqual(strip_ansi("\x1b[92mtcp://a:123\x1b[0m"), "tcp://a:123")
-        args = build_parser().parse_args(["--port", "9001", "--mode", "local", "--host", "10.10.14.5"])
+        defaults = build_parser().parse_args([])
+        self.assertEqual(defaults.port, 8888)
+        self.assertEqual(defaults.mode, "local")
+        self.assertEqual(defaults.iface, "tun0")
+        self.assertFalse(defaults.yolo)
+        args = build_parser().parse_args(["--port", "9001", "--mode", "local", "--host", "10.10.14.5", "-y"])
         self.assertEqual(args.port, 9001)
         self.assertEqual(args.mode, "local")
         self.assertEqual(args.host, "10.10.14.5")
+        self.assertTrue(args.yolo)
+        ip = detect_local_ip("nonexistent_iface0")
+        self.assertRegex(ip, r"^\d+\.\d+\.\d+\.\d+$")
 
     def test_tunnel_local_mode(self) -> None:
         t = TunnelManager(local_port=9999, mode="local", host_override="10.10.14.8")
